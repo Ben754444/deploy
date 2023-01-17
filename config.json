@@ -1,0 +1,5 @@
+{
+  "log_level": "info",
+  "port": 3366,
+  "hide_projects": true
+}

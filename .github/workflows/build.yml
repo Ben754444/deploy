@@ -1,0 +1,42 @@
+name: Release build
+on:
+  push:
+    tags:
+      - '*'
+  pull_request:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          yarn install --production=false
+      - name: Build
+        run: |
+          yarn build
+      - name: Compile
+        run: |
+          yarn compile
+      - name: Rename files
+        run: |
+          mv index-linux deploy-linux-amd64
+          mv index-macos deploy-macos-amd64
+          mv index-win.exe deploy-windows-amd64.exe
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.ref_name }}
+          files: |
+            dist/index.js

@@ -1,0 +1,32 @@
+[
+  {
+    "environment": "production",
+    "encrypted_secret": "$2a$10$8J1CRyAI2.tc2OTAFZwZ8OLAU6inUdGF5AOzCkiO8thztFl/hc03O",
+    "commands": [
+      "echo 'hello world'",
+      "echo 'hello world2'"
+    ],
+    "timeout": 60,
+    "max_retries": 3,
+    "retry_delay": 5,
+    "working_directory": "/tmp",
+    "shell": "/bin/bash",
+    "log_level": "info",
+    "log_format": "text"
+  },
+  {
+    "environment": "staging",
+    "encrypted_secret": "$2a$10$8J1CRyAI2.tc2OTAFZwZ8OLAU6inUdGF5AOzCkiO8thztFl/hc03O",
+    "commands": [
+      "echo 'hello staging",
+      "echo 'hello staging2'"
+    ],
+    "timeout": 60,
+    "max_retries": 3,
+    "retry_delay": 5,
+    "working_directory": "/tmp",
+    "shell": "/bin/bash",
+    "log_level": "info",
+    "log_format": "text"
+  }
+]
