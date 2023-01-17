@@ -39,4 +39,6 @@ jobs:
         with:
           tag_name: v${{ github.ref_name }}
           files: |
-            dist/index.js
+            deploy-linux-amd64
+            deploy-macos-amd64
+            deploy-windows-amd64.exe
