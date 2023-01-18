@@ -1,5 +1,7 @@
 {
-  "log_level": "info",
   "port": 3366,
-  "hide_projects": true
+  "host": "0.0.0.0",
+  "production": true,
+  "hide_projects": false,
+  "environment_variables_prefix": "DEPLOY_USER_"
 }

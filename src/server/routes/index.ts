@@ -1,10 +1,12 @@
 import * as express from "express";
 import {HTTPError} from "../utils/HTTPError";
-import {projects} from "../../projects";
+import * as projects from "../../projects";
 import {config} from "../../index";
-import * as bcrypt from "bcryptjs";
 import {IProject, IProjectData} from "../../interfaces/Project";
 import getLogger from "../../logger";
+import * as shell from "shelljs";
+import * as Joi from "joi";
+import * as crypto from "crypto";
 
 export const router = express.Router({mergeParams: true});
 
@@ -12,27 +14,125 @@ const logger = getLogger("server:projects");
 
 interface IParams {
     project: string
+    env?: string
 }
 
-router.post("/:env?", (req, res) => {
-    const project = (req.params as IParams).project;
-    const env = req.params.env;
-    const projectConfig = projects.get(project, env);
+const schema = Joi.object({
+    environment_variables: Joi.object().pattern(/.*/, [Joi.string(), Joi.number(), Joi.boolean()]).required(),
+});
 
-    if (!projectConfig) {
-        throw new HTTPError(404, "Project or environment not found")
-    }
-    if (!bcrypt.compareSync((req.header("Authorization") || "").split(" ")[1], projectConfig.encrypted_secret)) {
-        if (config.hide_projects) {
-            throw new HTTPError(404, "Project or environment not found")
-        } else {
-            throw new HTTPError(400, "Invalid secret")
+router.post("/:env?", (req, res) => {
+
+    if (req.body) {
+        const result = schema.validate(req.body);
+        if (result.error) {
+            throw new HTTPError(400, result.error.message)
         }
     }
 
-    //do stuff
+    //TODO MAKE COMPATIBLE WITH GH WEBHOOKS
+    // MAYBE TAKE BODY AND PUT IT AS AN ENV VARIABLE
 
-    logger.info(`Processing deploy for project ${project} from ${req.header("X-Real-Ip") || req.header("X-Forwarded-For") || req.header("CF-Connecting-IP") || req.ip}`);
+    const name = (req.params as IParams).project;
+    const env = req.params.env;
+    const project = projects.get(name, env);
+
+    if (!project) {
+        throw new HTTPError(404, "Project or environment not found")
+    }
+    let isGithub = false;
+    if (req.header("X-GitHub-Event") && req.header("X-Hub-Signature-256")) { //if it's a github webhook
+        isGithub = true;
+
+        if (!crypto.timingSafeEqual(Buffer.alloc(5, crypto.createHash("sha256").update(project.secret).digest("hex")), Buffer.alloc(5, req.header("X-Hub-Signature-256")))) {
+            if (config.hide_projects) {
+                throw new HTTPError(404, "Project or environment not found")
+            } else {
+                throw new HTTPError(400, "Invalid secret")
+            }
+        }
+    } else {
+        if (!crypto.timingSafeEqual(Buffer.alloc(5, crypto.createHash("sha256").update(project.secret).digest("hex")), Buffer.alloc(5, (req.header("Authorization") || "").split(" ")[1]))) {
+            if (config.hide_projects) {
+                throw new HTTPError(404, "Project or environment not found")
+            } else {
+                throw new HTTPError(400, "Invalid secret")
+            }
+        }
+    }
+
+    const environment: any = {
+        DEPLOY_ENV: env,
+        DEPLOY_PROJECT: name,
+        DEPLOY_IP: req.header("X-Real-Ip") || req.header("X-Forwarded-For") || req.header("CF-Connecting-IP") || req.ip, // the ip of the deployment request
+    };
+
+    Object.keys(req.body.environment_variables).forEach(key => {
+        environment[config.environment_variables_prefix + key] = req.body.environment_variables[key]
+    });
+
+    if (project.environment_variables) {
+        Object.keys(project.environment_variables).forEach(key => {
+            environment[config.environment_variables_prefix + key] = project.environment_variables![key]
+        })
+
+
+    }
+    logger.info(`Processing deploy for project ${name} from ${req.header("X-Real-Ip") || req.header("X-Forwarded-For") || req.header("CF-Connecting-IP") || req.ip}`);
+
+    if (project.scripts.pre) {
+        logger.info(`Running pre script for project ${name}`);
+        for (const script of project.scripts.pre) {
+            const result = shell.exec(script, {env: environment});
+            if (result.code !== 0) {
+                throw new HTTPError(500, "Pre script failed")
+            }
+        }
+    }
+    let mainFailed = false;
+    for (const script of project.scripts.main) {
+        const result = shell.exec(script, {env: environment});
+        if (result.code !== 0) {
+            mainFailed = true;
+            break;
+        }
+    }
+    if (mainFailed) {
+        if (project.scripts.on_failure) {
+            logger.info(`Running on_failure script for project ${name}`);
+            for (const script of project.scripts.on_failure) {
+                const result = shell.exec(script, {env: environment});
+                if (result.code !== 0) {
+                    break
+                }
+            }
+        }
+    } else {
+        if (project.scripts.on_success) {
+            logger.info(`Running on_success script for project ${name}`);
+            for (const script of project.scripts.on_success) {
+                const result = shell.exec(script, {env: environment});
+                if (result.code !== 0) {
+                    break
+                }
+            }
+        }
+    }
+
+    if (project.scripts.finally) {
+        logger.info(`Running finally script for project ${name}`);
+        for (const script of project.scripts.finally) {
+            const result = shell.exec(script, {env: environment});
+            if (result.code !== 0) {
+                break
+            }
+        }
+    }
+
+    if (mainFailed) {
+        throw new HTTPError(500, "Main script failed")
+    }
+
     return res.sendStatus(204)
 
 

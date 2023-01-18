@@ -7,4 +7,6 @@ export interface IConfig {
     production: boolean;
     // Whether to hide the presence of projects (will always return 404 unless all data is correct)
     hide_projects: boolean;
+    // The prefix for user supplied environment variables (to avoid collisions)
+    environment_variables_prefix: string;
 }

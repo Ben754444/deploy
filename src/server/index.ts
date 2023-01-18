@@ -8,7 +8,7 @@ const logger = getLogger("server");
 
 const app = express();
 
-//app.use(express.json());
+app.use(express.json());
 
 app.use((req, res, next) => {
     logger.info(`${req.method} ${req.originalUrl}`);
@@ -21,9 +21,11 @@ app.use("*", (req, res) => {
     throw new HTTPError(404, "The requested resource could not be found on this server")
 });
 
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err instanceof HTTPError) {
         return res.status(err.code).json(error(err.code, err.error))
+    } else if (err.type === "entity.parse.failed") {
+        res.status(400).json(error(400, err.message));
     }
     logger.error(err); //will this format
     res.status(500).json(error(500, "An error occurred while processing your request. Please try again later."))

@@ -8,7 +8,16 @@ export interface IProject {
 
 
 export interface IProjectData {
-    encrypted_secret: string;
-    commands: string[];
-    environment: string;
+    secret: string;
+    scripts: {
+        pre?: string[];
+        main: string[]
+        on_success?: string[];
+        on_failure?: string[];
+        finally?: string[];
+    };
+    environment_variables?: {
+        [key: string]: string
+    }
+    environment?: string;
 }
