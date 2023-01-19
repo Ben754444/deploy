@@ -1,7 +1,6 @@
 //make sure we do config before anything else
 import * as fs from "fs";
-
-
+import * as child_process from "child_process";
 import * as path from "path";
 
 const defaultConfig = {
@@ -54,7 +53,6 @@ import {start} from "./server";
 import getLogger from "./logger";
 import {IConfig} from "./interfaces/Config";
 import * as projects from "./projects";
-import * as child_process from "child_process";
 
 const logger = getLogger("app");
 
