@@ -18,11 +18,11 @@ if (!fs.existsSync(path.join(process.cwd(), "/config.json"))) {
 if (!fs.existsSync(path.join(process.cwd(), "/projects"))) {
     fs.mkdirSync(path.join(process.cwd(), "/projects"));
     fs.writeFileSync(path.join(process.cwd(), "/projects/example.json"), JSON.stringify(require("../projects/example.json"), null, 4));
-    fs.writeFileSync(path.join(process.cwd(), "/projects/example2.json"), JSON.stringify(require("../projects/example.json"), null, 4));
+    fs.writeFileSync(path.join(process.cwd(), "/projects/example2.json"), JSON.stringify(require("../projects/example2.json"), null, 4));
 }
 
 const args = process.argv.slice(2);
-
+// debating on restart settings
 if (args.includes("--systemd")) {
     fs.writeFileSync("/etc/systemd/system/deploy.service", `
 [Unit]
@@ -30,8 +30,8 @@ Description=Deploy Service
 After=multi-user.target
 
 [Service]
-Restart=on-failure
-RestartSec=5
+#Restart=on-failure
+#RestartSec=15
 WorkingDirectory=${process.cwd()}
 ExecStart=${process.cwd()}/deploy-linux-amd64 
 
