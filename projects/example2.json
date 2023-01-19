@@ -9,14 +9,7 @@
     },
     "environment_variables": {
       "IS_PRODUCTION": true
-    },
-    "timeout": 60,
-    "max_retries": 3,
-    "retry_delay": 5,
-    "working_directory": "/tmp",
-    "shell": "/bin/bash",
-    "log_level": "info",
-    "log_format": "text"
+    }
   },
   {
     "environment": "staging",

@@ -4,7 +4,6 @@ import * as fs from "fs";
 
 import * as path from "path";
 
-//TODO AUTOCREATE CONFIG FILE AND /PROJECTS DIR WITH EXAMPLES?
 const defaultConfig = {
     port: 3366,
     host: "0.0.0.0",
@@ -23,6 +22,28 @@ if (!fs.existsSync(path.join(process.cwd(), "/projects"))) {
     fs.writeFileSync(path.join(process.cwd(), "/projects/example2.json"), JSON.stringify(require("../projects/example.json"), null, 4));
 }
 
+const args = process.argv.slice(2);
+
+if (args.includes("--systemd")) {
+    fs.writeFileSync("/etc/systemd/system/deploy.service", `
+[Unit]
+Description=Deploy Service
+After=multi-user.target
+
+[Service]
+Restart=on-failure
+RestartSec=5
+WorkingDirectory=${process.cwd()}
+ExecStart=${process.cwd()}/deploy-linux-amd64 
+
+[Install]
+WantedBy=multi-user.target
+
+    `);
+    child_process.execSync("systemctl daemon-reload");
+    child_process.execSync("systemctl enable --now deploy");
+}
+
 const configFile = require(path.join(process.cwd()) + "/config.json");
 
 export const config: IConfig = {...defaultConfig, ...configFile};
@@ -33,6 +54,7 @@ import {start} from "./server";
 import getLogger from "./logger";
 import {IConfig} from "./interfaces/Config";
 import * as projects from "./projects";
+import * as child_process from "child_process";
 
 const logger = getLogger("app");
 

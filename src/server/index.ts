@@ -25,7 +25,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     if (err instanceof HTTPError) {
         return res.status(err.code).json(error(err.code, err.error))
     } else if (err.type === "entity.parse.failed") {
-        res.status(400).json(error(400, err.message));
+        return res.status(400).json(error(400, err.message));
     }
     logger.error(err); //will this format
     res.status(500).json(error(500, "An error occurred while processing your request. Please try again later."))

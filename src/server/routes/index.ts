@@ -22,8 +22,14 @@ const schema = Joi.object({
 });
 
 router.post("/:env?", (req, res) => {
-
-    if (req.body) {
+    /*
+                body    event
+                0       0       0
+                0       1       0
+                1       0       1
+                1       1       0
+     */
+    if (Object.keys(req.body).length !== 0 && !req.header("X-Github-Event")) {
         const result = schema.validate(req.body);
         if (result.error) {
             throw new HTTPError(400, result.error.message)
@@ -43,8 +49,12 @@ router.post("/:env?", (req, res) => {
     let isGithub = false;
     if (req.header("X-GitHub-Event") && req.header("X-Hub-Signature-256")) { //if it's a github webhook
         isGithub = true;
-
-        if (!crypto.timingSafeEqual(Buffer.alloc(5, crypto.createHash("sha256").update(project.secret).digest("hex")), Buffer.alloc(5, req.header("X-Hub-Signature-256")))) {
+        logger.info(project.secret);
+        logger.info(crypto.createHash("sha256").update(project.secret).digest("hex"));
+        const hmac = crypto.createHmac("sha256", project.secret);
+        const digest = Buffer.from("sha256=" + hmac.update(JSON.stringify(req.body)).digest("hex"), "utf8");
+        const secret = Buffer.from(req.header("X-Hub-Signature-256")!, "utf8");
+        if (digest.length === secret.length && !crypto.timingSafeEqual(digest, secret)) {
             if (config.hide_projects) {
                 throw new HTTPError(404, "Project or environment not found")
             } else {
@@ -60,16 +70,23 @@ router.post("/:env?", (req, res) => {
             }
         }
     }
+    if (req.header("X-Github-Event") === "ping") {
+        return res.sendStatus(204)
+    }
 
     const environment: any = {
         DEPLOY_ENV: env,
         DEPLOY_PROJECT: name,
         DEPLOY_IP: req.header("X-Real-Ip") || req.header("X-Forwarded-For") || req.header("CF-Connecting-IP") || req.ip, // the ip of the deployment request
     };
+    if (req.header("X-Github-Event")) {
+        environment["DEPLOY_GITHUB"] = JSON.stringify(req.body)
+    } else {
+        Object.keys(req.body.environment_variables).forEach(key => {
+            environment[config.environment_variables_prefix + key] = req.body.environment_variables[key]
+        });
+    }
 
-    Object.keys(req.body.environment_variables).forEach(key => {
-        environment[config.environment_variables_prefix + key] = req.body.environment_variables[key]
-    });
 
     if (project.environment_variables) {
         Object.keys(project.environment_variables).forEach(key => {
