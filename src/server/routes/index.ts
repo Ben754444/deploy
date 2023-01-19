@@ -49,8 +49,6 @@ router.post("/:env?", (req, res) => {
     let isGithub = false;
     if (req.header("X-GitHub-Event") && req.header("X-Hub-Signature-256")) { //if it's a github webhook
         isGithub = true;
-        logger.info(project.secret);
-        logger.info(crypto.createHash("sha256").update(project.secret).digest("hex"));
         const hmac = crypto.createHmac("sha256", project.secret);
         const digest = Buffer.from("sha256=" + hmac.update(JSON.stringify(req.body)).digest("hex"), "utf8");
         const secret = Buffer.from(req.header("X-Hub-Signature-256")!, "utf8");
@@ -81,22 +79,14 @@ router.post("/:env?", (req, res) => {
     };
     if (req.header("X-Github-Event")) {
         environment["DEPLOY_GITHUB"] = JSON.stringify(req.body)
-    } else {
-        Object.keys(req.body.environment_variables).forEach(key => {
-            environment[config.environment_variables_prefix + key] = req.body.environment_variables[key]
-        });
     }
-
 
     if (project.environment_variables) {
         Object.keys(project.environment_variables).forEach(key => {
             environment[config.environment_variables_prefix + key] = project.environment_variables![key]
         })
-
-
     }
     logger.info(`Processing deploy for project ${name} from ${req.header("X-Real-Ip") || req.header("X-Forwarded-For") || req.header("CF-Connecting-IP") || req.ip}`);
-
     if (project.scripts.pre) {
         logger.info(`Running pre script for project ${name}`);
         for (const script of project.scripts.pre) {
