@@ -19,19 +19,14 @@ interface IParams {
 }
 
 const schema = Joi.object({
-    environment_variables: Joi.object().pattern(/.*/, [Joi.string(), Joi.number(), Joi.boolean()]).required(),
+    environment_variables: Joi.object().pattern(/.*/, [Joi.string(), Joi.number(), Joi.boolean()]),
+    log_meta: Joi.object().pattern(/.*/, [Joi.string(), Joi.number(), Joi.boolean()]),
 });
 
 router.post("/:env?", (req, res) => {
-    /*
-                body    event
-                0       0       0
-                0       1       0
-                1       0       1
-                1       1       0
-     */
+    let result;
     if (Object.keys(req.body).length !== 0 && !req.header("X-Github-Event")) {
-        const result = schema.validate(req.body);
+        result = schema.validate(req.body);
         if (result.error) {
             throw new HTTPError(400, result.error.message)
         }
@@ -144,7 +139,8 @@ router.post("/:env?", (req, res) => {
             success: false,
             ip: req.header("X-Real-Ip") || req.header("X-Forwarded-For") || req.header("CF-Connecting-IP") || req.ip,
             github: isGithub,
-            error: "MAIN_SCRIPT_FAILED"
+            error: "MAIN_SCRIPT_FAILED",
+            meta: result?.value.log_meta
         });
         throw new HTTPError(500, "Main script failed")
     }
@@ -153,7 +149,8 @@ router.post("/:env?", (req, res) => {
         environment: env,
         success: true,
         ip: req.header("X-Real-Ip") || req.header("X-Forwarded-For") || req.header("CF-Connecting-IP") || req.ip,
-        github: isGithub
+        github: isGithub,
+        meta: result?.value.log_meta
     });
     return res.sendStatus(204)
 
