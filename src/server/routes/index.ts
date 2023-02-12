@@ -20,7 +20,7 @@ interface IParams {
 
 const schema = Joi.object({
     environment_variables: Joi.object().pattern(/.*/, [Joi.string(), Joi.number(), Joi.boolean()]),
-    log_meta: Joi.object().pattern(/.*/, [Joi.string(), Joi.number(), Joi.boolean()]),
+    log_meta: Joi.object().pattern(/.*/, [Joi.any()]),
 });
 
 router.post("/:env?", (req, res) => {
