@@ -7,6 +7,7 @@ import getLogger from "../../logger";
 import * as shell from "shelljs";
 import * as Joi from "joi";
 import * as crypto from "crypto";
+import esLogger from "../../esLogger";
 
 export const router = express.Router({mergeParams: true});
 
@@ -137,9 +138,23 @@ router.post("/:env?", (req, res) => {
     }
 
     if (mainFailed) {
+        esLogger.info("deploy", {
+            project: name,
+            environment: env,
+            success: false,
+            ip: req.header("X-Real-Ip") || req.header("X-Forwarded-For") || req.header("CF-Connecting-IP") || req.ip,
+            github: isGithub,
+            error: "MAIN_SCRIPT_FAILED"
+        });
         throw new HTTPError(500, "Main script failed")
     }
-
+    esLogger.info("deploy", {
+        project: name,
+        environment: env,
+        success: true,
+        ip: req.header("X-Real-Ip") || req.header("X-Forwarded-For") || req.header("CF-Connecting-IP") || req.ip,
+        github: isGithub
+    });
     return res.sendStatus(204)
 
 

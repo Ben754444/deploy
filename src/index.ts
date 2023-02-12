@@ -2,6 +2,7 @@
 import * as fs from "fs";
 import * as child_process from "child_process";
 import * as path from "path";
+process.env.DEBUG = "-winston:*,*,-express:*,-body-parser:json";
 
 const defaultConfig = {
     port: 3366,
@@ -46,8 +47,6 @@ WantedBy=multi-user.target
 const configFile = require(path.join(process.cwd()) + "/config.json");
 
 export const config: IConfig = {...defaultConfig, ...configFile};
-
-process.env.DEBUG = "*,-express:*,-body-parser:json";
 
 import {start} from "./server";
 import getLogger from "./logger";

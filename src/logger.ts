@@ -16,7 +16,6 @@ function esLog(message: string, meta: { level: string, meta?: any, name: string 
     //debug.log(message)
 }
 
-//TODO ES logger
 
 export default function getLogger(name: string): Logger {
     const log = debug(name);
